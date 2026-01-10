@@ -18,13 +18,16 @@
 
 using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
-#if defined(PLATFORM_DESKTOP)
-    #define GLSL_VERSION            330
-#else   // PLATFORM_ANDROID, PLATFORM_WEB
-    #define GLSL_VERSION            100
-#endif
+// Dosen't work on pi...
+//#define SHADER_ENABLED
 
-#define SHADER_ENABLED 1
+#ifdef SHADER_ENABLED
+    #if defined(PLATFORM_DESKTOP)
+        #define GLSL_VERSION            330
+    #else   // PLATFORM_ANDROID, PLATFORM_WEB
+        #define GLSL_VERSION            100
+    #endif
+#endif
 
 int main(int argc, char **argv) {
     // Init
@@ -45,8 +48,13 @@ int main(int argc, char **argv) {
     global_state->SetApps(&apps);
 
     GuiLoadStyle("assets/terminal.rgs");
-    Shader shader = LoadShader(TextFormat("assets/crt_%i.vs", GLSL_VERSION), TextFormat("assets/crt_%i.fs", GLSL_VERSION));
-    int timeLoc = GetShaderLocation(shader, "time");
+
+    #ifdef SHADER_ENABLED
+        Shader shader = LoadShader(TextFormat("assets/crt_%i.vs", GLSL_VERSION), TextFormat("assets/crt_%i.fs", GLSL_VERSION));
+        int timeLoc = GetShaderLocation(shader, "time");
+    #endif
+
+    std::cout << "Past shader init" << "\n";
 
     // Create a RenderTexture2D to be used for render to texture
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
@@ -92,14 +100,14 @@ int main(int argc, char **argv) {
         shell.draw();
         EndTextureMode();
 
-        float t = GetTime();
-        SetShaderValue(shader, timeLoc, &t, SHADER_UNIFORM_FLOAT);
+        //float t = GetTime();
+        //SetShaderValue(shader, timeLoc, &t, SHADER_UNIFORM_FLOAT);
 
         // Draw
         BeginDrawing();
-        if (SHADER_ENABLED) {
+        #ifdef SHADER_ENABLED
             BeginShaderMode(shader);
-        }
+        #endif
         ClearBackground(RAYWHITE);
 
         // Render generated texture using selected postprocessing shader
@@ -111,9 +119,9 @@ int main(int argc, char **argv) {
             WHITE
         );
 
-        if (SHADER_ENABLED) {
+        #ifdef SHADER_ENABLED
             EndShaderMode();
-        }
+        #endif
         EndDrawing();
     }
 
@@ -121,7 +129,9 @@ int main(int argc, char **argv) {
         dlclose(app.handle);
     }
 
+    #ifdef SHADER_ENABLED
     UnloadShader(shader);
+    #endif
     // Unload render texture
     UnloadRenderTexture(target);
 

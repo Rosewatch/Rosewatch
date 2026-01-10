@@ -3,10 +3,11 @@
 
 #include "global.h"
 
-RuntimeApplication* setup_app(const char* path, std::vector<RuntimeApplication>* apps) {
+RuntimeApplication* setup_app(const char* path, std::vector<RuntimeApplication>* apps, int index) {
     std::cout << "SETTING UP APPLICATION " << path << "\n";
 
     RuntimeApplication app = RuntimeApplication();
+    app.path = std::string(path);
 
     app.handle = dlopen(path, RTLD_LAZY);
     if (!app.handle) {
@@ -39,11 +40,19 @@ RuntimeApplication* setup_app(const char* path, std::vector<RuntimeApplication>*
     
     app.title = title_string;
 
-    std::cout << app.title.c_str() << "\n";
+    if (index == -1) {
+        apps->push_back(app);
+        
+        return &apps->front();
+    } else {
+        apps->at(index) = app;
+        
+        return &apps->at(index);
+    }
+}
 
-    apps->push_back(app);
-    
-    return &apps->front();
+RuntimeApplication* setup_app(const char* path, std::vector<RuntimeApplication>* apps) {
+    return setup_app(path, apps, -1);
 }
 
 RuntimeApplication* open_app(int app_index) {
@@ -71,3 +80,51 @@ RuntimeApplication* open_app(int app_index) {
 
     return ret_app;
 }
+
+RuntimeApplication* focus_app(int app_index) {
+    RuntimeApplication* ret_app = nullptr;
+
+    int i = 0;
+    for (auto it = global_state->apps->begin(); it != global_state->apps->end(); ++it) {
+        if (i == app_index) {
+            (*it).active = true;
+
+            ret_app = std::addressof(*it);
+        } else {
+            (*it).active = false;
+        }
+        
+        i++;
+    }
+
+    global_state->SetApplicationState(APPLICATION_APP);
+
+    return ret_app;
+}
+
+RuntimeApplication* close_app(int app_index) {
+    RuntimeApplication* ret_app = nullptr;
+
+    int i = 0;
+    for (auto it = global_state->apps->begin(); it != global_state->apps->end(); ++it) {
+        // No matter what we'll be closing the app
+        (*it).active = false;
+
+        if (i == app_index) {
+            const char* path = (*it).path.c_str();
+
+            dlclose((*it).handle);
+
+            setup_app(path, global_state->apps, i);
+
+            ret_app = std::addressof(*it);
+        }
+        
+        i++;
+    }
+
+    global_state->SetApplicationState(APPLICATION_APPS);
+
+    return ret_app;
+}
+

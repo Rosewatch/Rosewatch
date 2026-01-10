@@ -12,6 +12,7 @@ typedef struct {
     void *handle;
     bool open, active;
     std::string title;
+    std::string path;
 
     AppFPTR init, update, draw;
 } RuntimeApplication;
@@ -19,3 +20,7 @@ typedef struct {
 RuntimeApplication* setup_app(const char* path, std::vector<RuntimeApplication>* apps);
 
 RuntimeApplication* open_app(int app_index);
+
+RuntimeApplication* focus_app(int app_index);
+
+RuntimeApplication* close_app(int app_index);
