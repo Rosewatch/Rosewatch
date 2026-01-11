@@ -19,7 +19,9 @@
 using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
 // Dosen't work on pi...
-//#define SHADER_ENABLED
+#ifndef ON_PI 
+#define SHADER_ENABLED
+#endif
 
 #ifdef SHADER_ENABLED
     #if defined(PLATFORM_DESKTOP)
