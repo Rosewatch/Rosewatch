@@ -1,7 +1,8 @@
 #include "api/app_interface.h"
 #include "shared/app_api.h"
-#include <iostream>
-using namespace std;
+#include <string>
+
+const char* id = "Calc";
 
 ButtonParams button_params;
 LabelParams label_params;
@@ -40,7 +41,7 @@ extern "C" void draw(AppAPI* api) {
         api->print("Calc button pressed!");
     }
 
-    char c = char(counter);
-    label_params.text = &c;
+    std::string s = std::to_string(counter);
+    label_params.text = s.c_str();
     api->Label(&label_params);
 }
