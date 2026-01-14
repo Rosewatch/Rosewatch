@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     GuiLoadStyle("assets/terminal.rgs");
 
     #ifdef SHADER_ENABLED
-        Shader shader = LoadShader(TextFormat("assets/crt_%i.vs", GLSL_VERSION), TextFormat("assets/crt_%i.fs", GLSL_VERSION));
+        Shader shader = LoadShader("assets/crt.vs", "assets/crt.fs");
         int timeLoc = GetShaderLocation(shader, "time");
     #endif
 

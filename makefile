@@ -26,7 +26,7 @@ remote-build: remote-sync
 	ssh frida@rosewatch$(ARGS) -o RemoteCommand="/var/rosewatch/build.sh"
 
 remote-kill:
-	ssh frida@rosewatch$(ARGS) -o RemoteCommand="/var/rosewatch/kill.sh"
+	ssh frida@rosewatch$(ARGS) -o RemoteCommand="/var/rosewatch/scripts/kill.sh"
 
 remote-run: remote-kill
-	ssh frida@rosewatch$(ARGS) -o RemoteCommand="/var/rosewatch/build/bin/lvglsim $(ARGS)"
+	ssh frida@rosewatch$(ARGS) -o RemoteCommand="/var/rosewatch/scripts/launch.sh"

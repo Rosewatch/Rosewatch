@@ -4,7 +4,6 @@ in vec2 fragTexCoord;
 out vec4 finalColor;
 
 uniform sampler2D texture0;
-uniform float time;
 uniform vec2 resolution = vec2(1280, 720);
 uniform vec4 colDiffuse;
 
@@ -55,10 +54,6 @@ void main() {
     float scanline = sin(uv.y * resolution.y * 3.141592);
     scanline = mix(1.0, scanline, scanlineStrength);
     color *= scanline;
-
-    // Noise
-    float noise = rand(uv * resolution + time);
-    color += (noise - 0.5) * noiseStrength;
 
     // Glow / phosphor persistence
     color += color * glowStrength;
