@@ -17,7 +17,7 @@ std::string api_getcurrenttime() {
     return global_state->GetCurrentTime();
 }
 
-Rectangle api_getviewport() {
+Dimensions api_getviewport() {
     return global_state->viewport;
 }
 

@@ -24,7 +24,7 @@ typedef enum {
 
 class GlobalState {
 public:
-    Rectangle viewport;
+    Dimensions viewport;
     ApplicationState app_state;
     std::vector<RuntimeApplication> *apps;
     AppAPI* api{};

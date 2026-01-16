@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui.h"
+#include "lib/raylib.h"
 #include <string>
 
 #ifdef __cplusplus
@@ -24,7 +25,7 @@ typedef struct AppAPI {
     void (*DrawTexture)(Texture2D texture, int posX, int posY, Color tint);
 
     std::string (*GetCurrentTime)();
-    Rectangle (*GetViewport)();
+    Dimensions (*GetViewport)();
 
     void* (*MemAlloc)(unsigned int size);
     void (*MemFree)(void* ptr);

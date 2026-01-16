@@ -61,10 +61,11 @@ ButtonParams record_button;
 LabelParams error_label;
 
 extern "C" void init(AppAPI* api) {
-    Rectangle viewport = api->GetViewport();
+    Dimensions viewport = api->GetViewport();
     error_label = api->LabelParamInit((LabelParams) {
         .text = "No webcams detected",
-        .bounds = viewport,
+        .width = viewport.width,
+        .height = viewport.height,
     });
 
     camera_amount = CountCameras();
@@ -84,12 +85,8 @@ extern "C" void init(AppAPI* api) {
     
     record_button = api->ButtonParamInit((ButtonParams){
         .text = "Record",
-        .rect = (Rectangle) {
-            .x = viewport.width - 110,
-            .y = 10,
-            .width = 100,
-            .height = 50,
-        }
+        .width = 100,
+        .height = 50,
     });
 
     api->print(std::to_string(camera_amount).c_str());
@@ -98,12 +95,8 @@ extern "C" void init(AppAPI* api) {
     for (int i = 0; i < camera_amount; i++) {
         camera_params.push_back(api->ButtonParamInit((ButtonParams) {
             .text = std::to_string(i).c_str(),
-            .rect = (Rectangle) {
-                .x = (float)(60 * i) + 10,
-                .y = viewport.height - 60,
-                .width = 50,
-                .height = 50,
-            }
+            .width = 50,
+            .height = 50,
         }));
     }
 }

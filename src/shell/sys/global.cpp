@@ -6,7 +6,7 @@ const int screenHeight = 720;
 GlobalState* global_state = nullptr;
 
 GlobalState::GlobalState (AppAPI* api) {
-    viewport = (Rectangle) { };
+    viewport = (Dimensions) { };
     app_state = APPLICATION_HOME;
     this->api = api;
     raw_time = time(0);

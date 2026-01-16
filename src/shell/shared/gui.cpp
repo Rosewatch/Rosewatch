@@ -1,38 +1,71 @@
 #include "shared/app_api.h"
+#include <iostream>
+#include <cstring>
 
-Rectangle GetAlignedRect(
-    float w, float h,
-    Direction x_dir,
-    Direction y_dir,
-    Rectangle parent
-) {
-    Rectangle rect = {};
+typedef struct ButtonData {
+    bool clicked;
+} ButtonData;
 
-    if (x_dir == Direction::START) {
-        rect.x = parent.x;
-    } else if (x_dir == Direction::CENTER) {
-        rect.x = parent.x/2 - w/2;
-    } else if (x_dir == Direction::END) {
-        rect.x = parent.x - w;
+bool down_last_frame = false;
+
+bool MouseClicked() {
+    return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+}
+
+bool MouseJustClicked() {
+    if (MouseClicked()) {
+        if (down_last_frame) {
+            return false;
+        } else {
+            down_last_frame = true;
+            return true;
+        }
+    } else {
+        down_last_frame = false;
+        return false;
     }
+}
 
-    if (y_dir == Direction::START) {
-        rect.y = parent.y;
-    } else if (y_dir == Direction::CENTER) {
-        rect.y = parent.y/2 - h/2;
-    } else if (x_dir == Direction::END) {
-        rect.y = parent.y - h;
-    }
-
-    rect.width = w;
-    rect.height = h;
-    
-    return rect;
+Clay_String string_from_cstr(const char* cstr) {
+    return (Clay_String) {
+        .length = strlen(cstr),
+        .chars = cstr
+    };
 }
 
 bool Button(const ButtonParams* params) {
-    if (params->flags & BUTTON_FONT_MULT) {
-        GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * params->font_mult);
+    bool clicked = false;
+
+    CLAY(CLAY_ID("Button"), {
+        .layout = {
+            .sizing = { .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_FIXED(50) },
+            .padding = CLAY_PADDING_ALL(8),
+        },
+        .backgroundColor = Clay_Hovered()
+            ? (Clay_Color){224, 215, 0, 255}
+            : (Clay_Color){224, 0, 215, 255},
+    }) {
+
+        if (Clay_Hovered() && MouseJustClicked()) {
+            clicked = true;
+        }
+
+        CLAY_TEXT(string_from_cstr(params->text), CLAY_TEXT_CONFIG({
+            .textColor = {255, 255, 255, 255},
+            .fontId = 0,
+            .fontSize = params->flags & BUTTON_FONT_SIZE
+                ? (uint16_t)params->font_size
+                : 16,
+        }));
+    }
+
+    return clicked;
+}
+
+
+
+    /*if (params->flags & BUTTON_FONT_SIZE) {
+        GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * params->font_size);
     }
 
     if (params->flags & BUTTON_H_ALIGN) {
@@ -53,10 +86,9 @@ bool Button(const ButtonParams* params) {
         GuiSetStyle(DEFAULT, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
     }
 
-    if (params->flags & BUTTON_FONT_MULT) {
+    if (params->flags & BUTTON_FONT_SIZE) {
         GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
-    }
-}
+    }*/
 
 ButtonParams ButtonParamInit(ButtonParams in_params) {
     ButtonParams params = in_params;
@@ -65,8 +97,8 @@ ButtonParams ButtonParamInit(ButtonParams in_params) {
 }
 
 void Label(const LabelParams* params) {
-    if (params->flags & LABEL_FONT_MULT) {
-        GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * params->font_mult);
+    /*if (params->flags & LABEL_font_size) {
+        GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * params->font_size);
     }
 
     if (params->flags & LABEL_H_ALIGN) {
@@ -87,9 +119,9 @@ void Label(const LabelParams* params) {
         GuiSetStyle(DEFAULT, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
     }
 
-    if (params->flags & LABEL_FONT_MULT) {
+    if (params->flags & LABEL_font_size) {
         GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
-    }
+    }*/
 }
 
 LabelParams LabelParamInit(LabelParams in_params) {

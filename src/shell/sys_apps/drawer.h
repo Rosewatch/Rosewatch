@@ -2,7 +2,6 @@
 
 #include <vector>
 #include "../sys/global.h"
-#include "raygui.h"
 
 #define TILE_SIZE 150
 

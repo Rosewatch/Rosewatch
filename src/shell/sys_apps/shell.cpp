@@ -7,55 +7,40 @@ Shell::Shell() {
         screenHeight
     );
 
-    panel_rect = (Rectangle) {
-        .x = screenWidth - WIDTH,
-        .y = 0,
-        .width = WIDTH,
-        .height = screenHeight,
-    };
+    panel_width = WIDTH;
+    panel_height = screenHeight;
 
-    clock_rect = (Rectangle) {
-        .x = screenWidth - WIDTH,
-        .y = 0,
-        .width = WIDTH,
-        .height = CLOCK_HEIGHT,
-    };
+    clock_width = WIDTH;
+    clock_height = CLOCK_HEIGHT;
 
     clock_params = LabelParamInit((LabelParams) {
         .text = "",
-        .bounds = clock_rect,
-        .flags = LABEL_FONT_MULT | LABEL_H_ALIGN | LABEL_V_ALIGN,
-        .font_mult = 4,
-        .h_align = TEXT_ALIGN_CENTER,
-        .v_align = TEXT_ALIGN_MIDDLE
+        .width = clock_width,
+        .height = clock_height,
+        .flags = LABEL_font_size | LABEL_H_ALIGN | LABEL_V_ALIGN,
+        .font_size = 4,
+        .h_align = CENTER,
+        .v_align = CENTER
     });
 
     home_params = ButtonParamInit((ButtonParams) {
         .text = "Home",
-        .rect = (Rectangle) {
-            .x = screenWidth - WIDTH,
-            .y = CLOCK_HEIGHT + ELEMENT_MARGIN_B,
-            .width = WIDTH/2,
-            .height = WIDTH/2,
-        },
-        .flags = BUTTON_FONT_MULT | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-        .font_mult = 2,
-        .h_align = TEXT_ALIGN_CENTER,
-        .v_align = TEXT_ALIGN_MIDDLE
+        .width = WIDTH/2,
+        .height = WIDTH/2,
+        .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
+        .font_size = 32,
+        .h_align = CENTER,
+        .v_align = CENTER
     });
     
     drawer_params = ButtonParamInit((ButtonParams) {
         .text = "Apps",
-        .rect = (Rectangle) {
-            .x = screenWidth - WIDTH/2,
-            .y = CLOCK_HEIGHT + ELEMENT_MARGIN_B,
-            .width = WIDTH/2,
-            .height = WIDTH/2,
-        },
-        .flags = BUTTON_FONT_MULT | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-        .font_mult = 2,
-        .h_align = TEXT_ALIGN_CENTER,
-        .v_align = TEXT_ALIGN_MIDDLE
+        .width = WIDTH/2,
+        .height = WIDTH/2,
+        .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
+        .font_size = 2,
+        .h_align = CENTER,
+        .v_align = CENTER
     });
 
     apps_params = std::vector<ShellApp>();
@@ -63,29 +48,21 @@ Shell::Shell() {
         apps_params.push_back((ShellApp) {
             .param = ButtonParamInit((ButtonParams) {
                 .text = (*it).title.c_str(),
-                .rect = (Rectangle) {
-                    .x = screenWidth - WIDTH,
-                    .y = CLOCK_HEIGHT + ELEMENT_MARGIN_B,
-                    .width = WIDTH - WIDTH/4,
-                    .height = WIDTH/2,
-                },
-                .flags = BUTTON_FONT_MULT | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-                .font_mult = 2,
-                .h_align = TEXT_ALIGN_LEFT,
-                .v_align = TEXT_ALIGN_MIDDLE,
+                .width = WIDTH - WIDTH/4,
+                .height = WIDTH/2,
+                .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
+                .font_size = 2,
+                .h_align = CENTER,
+                .v_align = CENTER,
             }),
             .close_param = ButtonParamInit((ButtonParams) {
                 .text = "X",
-                .rect = (Rectangle) {
-                    .x = screenWidth - WIDTH/4,
-                    .y = CLOCK_HEIGHT + ELEMENT_MARGIN_B,
-                    .width = WIDTH/4,
-                    .height = WIDTH/2,
-                },
-                .flags = BUTTON_FONT_MULT | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-                .font_mult = 2,
-                .h_align = TEXT_ALIGN_CENTER,
-                .v_align = TEXT_ALIGN_MIDDLE,
+                .width = WIDTH/4,
+                .height = WIDTH/2,
+                .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
+                .font_size = 2,
+                .h_align = CENTER,
+                .v_align = CENTER,
             }),
             .open = &it->open,
         });
@@ -106,14 +83,25 @@ void Shell::update() {
 }
 
 void Shell::draw() {
+    CLAY(CLAY_ID("Shell Sidebar"), (Clay_ElementDeclaration) {
+        .layout = {
+            .sizing = { .width = CLAY_SIZING_FIXED(WIDTH), .height = CLAY_SIZING_GROW(0) },
+        },
+        .backgroundColor = (Clay_Color) {224, 215, 210, 255},
+    }) {
+        if (global_state->api->Button(&home_params)) {
+            global_state->api->print("HELLO!");
+        }
+    }
+
     // Vertical line
-    DrawLine(panel_rect.x, panel_rect.y, panel_rect.x, panel_rect.height, GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_NORMAL)));
+    //DrawLine(panel_rect.x, panel_rect.y, panel_rect.x, panel_rect.height, GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_NORMAL)));
     
-    clock_params.text = global_state->GetCurrentTime().c_str();
-    global_state->api->Label(&clock_params);
+    //clock_params.text = global_state->GetCurrentTime().c_str();
+    //global_state->api->Label(&clock_params);
 
     // Time differ line
-    DrawLine(clock_rect.x,
+    /*DrawLine(clock_rect.x,
         clock_rect.y + clock_rect.height,
         clock_rect.x + clock_rect.width,
         clock_rect.y + clock_rect.height,
@@ -148,5 +136,5 @@ void Shell::draw() {
         }
 
         index++;
-    }
+    }*/
 }

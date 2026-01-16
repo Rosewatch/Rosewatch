@@ -14,22 +14,14 @@ extern "C" void init(AppAPI* api) {
 
     button_params = api->ButtonParamInit((ButtonParams){
         .text = "Hello!",
-        .rect = (Rectangle) {
-            .x = 100,
-            .y = 100,
-            .width = 100,
-            .height = 100
-        }
+        .width = 100,
+        .height = 100
     });
 
     label_params = api->LabelParamInit((LabelParams){
         .text = "0",
-        .bounds = (Rectangle) {
-            .x = 200,
-            .y = 100,
-            .width = 100,
-            .height = 100
-        }
+        .width = 100,
+        .height = 100
     });
 }
 
