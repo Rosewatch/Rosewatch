@@ -7,24 +7,14 @@
 #define ELEMENT_MARGIN_B 5
 #define APP_OFFSET (WIDTH/2 + CLOCK_HEIGHT + (ELEMENT_MARGIN_B * 2))
 
-typedef struct ShellApp {
-    ButtonParams param, close_param;
-    bool* open;
-} ShellApp;
-
 class Shell {
 private:
-    float panel_width, panel_height, clock_width, clock_height;
-    LabelParams clock_params;
-    ButtonParams home_params, drawer_params;
     int open_amount;
-    std::vector<ShellApp> apps_params;
 
 public:
     Shell();
     ~Shell();
 
     void update();
-
     void draw();
 };

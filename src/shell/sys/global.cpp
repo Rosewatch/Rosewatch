@@ -45,6 +45,10 @@ void GlobalState::SetThemes(std::vector<Theme> new_themes) {
     themes = new_themes;
 }
 
+void GlobalState::SetThemes(Theme* themes_ptr, uint32_t count) {
+    themes.assign(themes_ptr, themes_ptr + count);
+}
+
 void GlobalState::SetCurrentTheme(int i) {
     current_theme = &themes.at(i);
 }

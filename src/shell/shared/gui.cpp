@@ -1,223 +1,298 @@
-#include "shared/app_api.h"
-#include "../sys/global.h"
-#include <iostream>
+#include "shared/gui.h"
+
+/* ============================================================
+   Backend-only includes
+   ============================================================ */
+
+#include "raylib.h"
+#include "shared/lib/clay.h"
+
+#include <vector>
 #include <cstring>
+#include <fstream>
+#include <filesystem>
 
 #include "shared/lib/json.hpp"
-#include <fstream>
+#include "../sys/global.h"
 
-#include <filesystem>
 using json = nlohmann::json;
 using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
-typedef struct ButtonData {
-    bool clicked;
-} ButtonData;
+/* ============================================================
+   Backend font wrapper (opaque to frontend)
+   ============================================================ */
 
-#define CLAY_BLACK (Clay_Color) {0,0,0,0}
-Clay_Color load_color(json data) {
-    return (Clay_Color) {
-        data[0].get<float>(),
-        data[1].get<float>(),
-        data[2].get<float>(),
-        data[3].get<float>(),
-    };
-}
+struct GuiFontHandle {
+    Font font;
+};
+
+/* ============================================================
+   Image handle
+   ============================================================ */
+
+struct GuiImage {
+    Texture2D texture;
+    int width;
+    int height;
+};
+
+/* ============================================================
+   Globals
+   ============================================================ */
 
 Theme* current_theme = nullptr;
-std::vector<Theme> load_themes() {
-    std::vector<Theme> themes;
+static bool mouse_down_last = false;
 
-    for (const auto& dirEntry : recursive_directory_iterator("assets/themes")) {
-        bool error = false;
+/* ============================================================
+   Input helpers
+   ============================================================ */
 
-        std::ifstream f(dirEntry.path());
-        json data = json::parse(f);
-
-        Font fonts[3];
-        fonts[0] = LoadFontEx(TextFormat("assets/fonts/", (data.contains("font_regular") && data["font_regular"].is_string() ? data["font_regular"].get<std::string>().c_str() : "AdwaitaMono-Regular.ttf")), 64, 0, 400);
-        //SetTextureFilter(fonts[0].texture, TEXTURE_FILTER_BILINEAR);
-        fonts[1] = LoadFontEx(TextFormat("assets/fonts/", (data.contains("font_italic") && data["font_italic"].is_string() ? data["font_italic"].get<std::string>().c_str() : "AdwaitaMono-Regular.ttf")), 64, 0, 400);
-        //SetTextureFilter(fonts[1].texture, TEXTURE_FILTER_BILINEAR);
-        fonts[2] = LoadFontEx(TextFormat("assets/fonts/", (data.contains("font_bold") && data["font_bold"].is_string() ? data["font_bold"].get<std::string>().c_str() : "AdwaitaMono-Regular.ttf")), 64, 0, 400);
-        //SetTextureFilter(fonts[2].texture, TEXTURE_FILTER_BILINEAR);
-
-        Theme theme = {
-            .bg_col = data.contains("bg_col") && data["bg_col"].is_array() ? load_color(data["bg_col"]) : CLAY_BLACK,
-            .bg_hover_col = data.contains("bg_hover_col") && data["bg_hover_col"].is_array() ? load_color(data["bg_hover_col"]) : CLAY_BLACK,
-            .fg_col = data.contains("fg_col") && data["fg_col"].is_array() ? load_color(data["fg_col"]) : CLAY_BLACK,
-            .border_col = data.contains("border_col") && data["border_col"].is_array() ? load_color(data["border_col"]) : CLAY_BLACK,
-            .fonts = *fonts
-        };
-    
-        if (error) {
-            continue;
-        } else {
-            themes.push_back(theme);
-        }
-    }
-
-    return themes;
-}
-
-bool down_last_frame = false;
-
-bool MouseClicked() {
+static int MouseDown(void) {
     return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 }
 
-bool MouseJustClicked() {
-    if (MouseClicked()) {
-        if (down_last_frame) {
-            return false;
-        } else {
-            down_last_frame = true;
-            return true;
-        }
-    } else {
-        down_last_frame = false;
-        return false;
-    }
+static int MousePressed(void) {
+    int down = MouseDown();
+    int pressed = down && !mouse_down_last;
+    mouse_down_last = down;
+    return pressed;
 }
 
-Clay_String clay_string_from_cstr(const char* cstr) {
-    return (Clay_String) {
-        .length = strlen(cstr),
-        .chars = cstr
+/* ============================================================
+   Clay helpers
+   ============================================================ */
+
+static Clay_String clay_string(const char* s) {
+    return Clay_String{
+        .length = (int32_t)strlen(s),
+        .chars  = s
     };
 }
 
-Clay_LayoutAlignmentX directon_to_clay_x(Direction dir) {
-    if (dir == Direction::START) {
-        return CLAY_ALIGN_X_LEFT;
-    } else if (dir == Direction::CENTER) {
-        return CLAY_ALIGN_X_CENTER;
-    } else if (dir == Direction::END) {
-        return CLAY_ALIGN_X_RIGHT;
-    } else {
-        return CLAY_ALIGN_X_CENTER;
+static Clay_Color to_clay(GuiColor c) {
+    return Clay_Color{
+        c.r / 255.0f,
+        c.g / 255.0f,
+        c.b / 255.0f,
+        c.a / 255.0f
+    };
+}
+
+static Color to_raylib(GuiColor c) {
+    return Color{ c.r, c.g, c.b, c.a };
+}
+
+static Clay_SizingAxis to_clay(GuiSizing s) {
+    switch (s.kind) {
+        case GUI_SIZING_GROW:    return CLAY_SIZING_GROW(0);
+        case GUI_SIZING_PERCENT: return CLAY_SIZING_PERCENT(s.value);
+        case GUI_SIZING_FIXED:
+        case GUI_SIZING_FIT:
+        default:                return CLAY_SIZING_FIXED(s.value);
     }
 }
 
-Clay_LayoutAlignmentY directon_to_clay_y(Direction dir) {
-    if (dir == Direction::START) {
-        return CLAY_ALIGN_Y_TOP;
-    } else if (dir == Direction::CENTER) {
-        return CLAY_ALIGN_Y_CENTER;
-    } else if (dir == Direction::END) {
-        return CLAY_ALIGN_Y_BOTTOM;
-    } else {
-        return CLAY_ALIGN_Y_CENTER;
-    }
+static Clay_LayoutAlignmentX to_align_x(GuiDirection d) {
+    return d == GUI_DIR_START  ? CLAY_ALIGN_X_LEFT  :
+           d == GUI_DIR_END    ? CLAY_ALIGN_X_RIGHT :
+                                 CLAY_ALIGN_X_CENTER;
 }
 
-Clay_SizingAxis sizing_to_clay_sizing(Sizing sizing, float sizing_num) {
-    if (sizing == Sizing::FIT) {
-        return CLAY_SIZING_FIXED(sizing_num);
-    } else if (sizing = Sizing::FIXED) {
-        return CLAY_SIZING_FIXED(sizing_num);
-    } else if (sizing == Sizing::GROW) {
-        return CLAY_SIZING_GROW(sizing_num);
-    } else if (sizing == Sizing::PERCENT) {
-        return CLAY_SIZING_PERCENT(sizing_num);
-    } else {
-        return CLAY_SIZING_FIXED(50);
-    }
+static Clay_LayoutAlignmentY to_align_y(GuiDirection d) {
+    return d == GUI_DIR_START  ? CLAY_ALIGN_Y_TOP    :
+           d == GUI_DIR_END    ? CLAY_ALIGN_Y_BOTTOM :
+                                 CLAY_ALIGN_Y_CENTER;
 }
 
-bool Button(const ButtonParams* params) {
-    bool clicked = false;
-    Theme* theme = global_state->current_theme;
+
+/* ============================================================
+   Theme loading
+   ============================================================ */
+
+static GuiColor load_color(const json& j) {
+    return GuiColor{
+        (uint8_t)j[0],
+        (uint8_t)j[1],
+        (uint8_t)j[2],
+        (uint8_t)j[3]
+    };
+}
+
+Theme* load_themes(uint32_t* out_count) {
+    static std::vector<Theme> themes;
+    static std::vector<GuiFontHandle> fonts;
+
+    themes.clear();
+    fonts.clear();
+
+    for (auto& entry : recursive_directory_iterator("assets/themes")) {
+        std::ifstream f(entry.path());
+        if (!f) continue;
+
+        json data = json::parse(f, nullptr, false);
+        if (data.is_discarded()) continue;
+
+        Theme t{};
+        t.bg_col       = load_color(data["bg_col"]);
+        t.bg_hover_col = load_color(data["bg_hover_col"]);
+        t.fg_col       = load_color(data["fg_col"]);
+        t.border_col   = load_color(data["border_col"]);
+
+        auto load_font = [&](const char* name) {
+            fonts.push_back({});
+            fonts.back().font =
+                LoadFontEx(TextFormat("assets/fonts/%s", name), 64, 0, 400);
+            return &fonts.back();
+        };
+
+        t.fonts[FONT_REGULAR] =
+            load_font(data.value("font_regular", "AdwaitaMono-Regular.ttf").c_str());
+        t.fonts[FONT_ITALIC] =
+            load_font(data.value("font_italic", "AdwaitaMono-Regular.ttf").c_str());
+        t.fonts[FONT_BOLD] =
+            load_font(data.value("font_bold", "AdwaitaMono-Regular.ttf").c_str());
+
+        themes.push_back(t);
+    }
+
+    if (out_count) *out_count = (uint32_t)themes.size();
+    return themes.data();
+}
+
+/* ============================================================
+   Widgets
+   ============================================================ */
+
+int Button(GuiButtonParams params) {
+    GuiButtonParams p = GUI_BUTTON_DEFAULTS;
+    p = params;
+
+    int clicked = 0;
 
     CLAY_AUTO_ID({
         .layout = {
-            .sizing = {
-                params->flags & LABEL_SIZING_X
-                    ? sizing_to_clay_sizing(params->sizing_x, params->sizing_num_x)
-                    : CLAY_SIZING_GROW(0),
-                params->flags & LABEL_SIZING_Y
-                    ? sizing_to_clay_sizing(params->sizing_y, params->sizing_num_y)
-                    : CLAY_SIZING_FIXED(50),
-            },
-            .padding = CLAY_PADDING_ALL(4),
+            .sizing = { to_clay(p.size_x), to_clay(p.size_y) },
+            .padding = CLAY_PADDING_ALL(6),
             .childAlignment = {
-                .x = params->flags & BUTTON_H_ALIGN
-                    ? directon_to_clay_x(params->h_align)
-                    : CLAY_ALIGN_X_CENTER,
-                .y = params->flags & BUTTON_V_ALIGN
-                    ? directon_to_clay_y(params->h_align)
-                    : CLAY_ALIGN_Y_CENTER,
+                to_align_x(p.h_align),
+                to_align_y(p.v_align)
             }
         },
-        .backgroundColor = Clay_Hovered()
-            ? theme->bg_col
-            : theme->bg_hover_col,
+        .backgroundColor = to_clay(
+            Clay_Hovered()
+                ? current_theme->bg_hover_col
+                : current_theme->bg_col
+        ),
         .border = {
-            .color = theme->border_col,
-            .width = { 1, 1, 1, 1, 0 },
-        },
-    }) {
-
-        if (Clay_Hovered() && MouseJustClicked()) {
-            clicked = true;
+            .color = to_clay(current_theme->border_col)
         }
+    }) {
+        if (Clay_Hovered() && MousePressed())
+            clicked = 1;
 
-        CLAY_TEXT(clay_string_from_cstr(params->text), CLAY_TEXT_CONFIG({
-            .textColor = theme->fg_col,
-            .fontId = FONT_REGULAR,
-            .fontSize = params->flags & BUTTON_FONT_SIZE
-                ? (uint16_t)params->font_size
-                : 16,
-        }));
+        CLAY_TEXT(
+            clay_string(p.text),
+            CLAY_TEXT_CONFIG({
+                .textColor = to_clay(current_theme->fg_col),
+                .fontId    = FONT_REGULAR,
+                .fontSize  = (uint16_t)p.font_size,
+            })
+        );
     }
 
     return clicked;
 }
 
-/*if (params->flags & BUTTON_H_ALIGN) {
-    GuiSetStyle(DEFAULT, TEXT_ALIGNMENT, params->h_align);
+void Label(GuiLabelParams params) {
+    GuiLabelParams p = GUI_LABEL_DEFAULTS;
+    p = params;
+
+    CLAY_AUTO_ID({
+        .layout = {
+            .sizing = { to_clay(p.size_x), to_clay(p.size_y) },
+            .childAlignment = {
+                to_align_x(p.h_align),
+                to_align_y(p.v_align)
+            }
+        }
+    }) {
+        CLAY_TEXT(
+            clay_string(p.text),
+            CLAY_TEXT_CONFIG({
+                .textColor = to_clay(current_theme->fg_col),
+                .fontId    = FONT_REGULAR,
+                .fontSize  = (uint16_t)p.font_size,
+            })
+        );
+    }
 }
 
-if (params->flags & BUTTON_V_ALIGN) {
-    GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, params->v_align);
-}*/
+void Gui_BeginBox(GuiBoxParams params) {
+    GuiBoxParams p = GUI_BOX_DEFAULTS;
+    p = params;
 
-ButtonParams ButtonParamInit(ButtonParams in_params) {
-    ButtonParams params = in_params;
-    params.struct_size = sizeof(params);
-    return params;
+    CLAY_AUTO_ID({
+        .layout = {
+            .sizing = { to_clay(p.size_x), to_clay(p.size_y) },
+            .padding = CLAY_PADDING_ALL(p.padding),
+        },
+        .backgroundColor = to_clay(p.background),
+    }) {
+        /* scope open */
+    }
 }
 
-void Label(const LabelParams* params) {
-    /*if (params->flags & LABEL_font_size) {
-        GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * params->font_size);
-    }
-
-    if (params->flags & LABEL_H_ALIGN) {
-        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT, params->h_align);
-    }
-
-    if (params->flags & LABEL_V_ALIGN) {
-        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, params->v_align);
-    }
-
-    GuiLabel(params->bounds, params->text);
-
-    if (params->flags & LABEL_V_ALIGN) {
-        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, TEXT_ALIGN_TOP);
-    }
-
-    if (params->flags & LABEL_H_ALIGN) {
-        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
-    }
-
-    if (params->flags & LABEL_font_size) {
-        GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
-    }*/
+void Gui_End(void) {
+    /* Clay auto-closes scopes */
 }
 
-LabelParams LabelParamInit(LabelParams in_params) {
-    LabelParams params = in_params;
-    params.struct_size = sizeof(params);
-    return params;
+/* ============================================================
+   Images
+   ============================================================ */
+
+GuiImage* GuiImage_Create(int width, int height) {
+    Image img = GenImageColor(width, height, BLANK);
+    Texture2D tex = LoadTextureFromImage(img);
+    UnloadImage(img);
+
+    GuiImage* gimg = (GuiImage*)MemAlloc(sizeof(GuiImage));
+    gimg->texture = tex;
+    gimg->width   = width;
+    gimg->height  = height;
+    return gimg;
+}
+
+void GuiImage_Update(GuiImage* image, const void* rgba_pixels) {
+    if (!image) return;
+    UpdateTexture(image->texture, rgba_pixels);
+}
+
+void GuiImage_Draw(GuiImage* image, int x, int y) {
+    if (!image) return;
+    DrawTexture(image->texture, x, y, WHITE);
+}
+
+void GuiImage_DrawTinted(GuiImage* image, int x, int y, GuiColor tint) {
+    if (!image) return;
+    DrawTexture(image->texture, x, y, to_raylib(tint));
+}
+
+void GuiImage_Destroy(GuiImage* image) {
+    if (!image) return;
+    UnloadTexture(image->texture);
+    MemFree(image);
+}
+
+/* ============================================================
+   Clay ↔ Raylib font bridge (FIXED)
+   ============================================================ */
+
+Font* Gui_GetRaylibFonts(const Theme* theme) {
+    static Font raylib_fonts[3];
+
+    for (int i = 0; i < 3; ++i) {
+        raylib_fonts[i] = theme->fonts[i]->font;
+    }
+
+    return raylib_fonts;
 }

@@ -1,97 +1,175 @@
 #pragma once
+#include <stdint.h>
 
-#include <memory>
-#include <cstdint>
-#include <vector>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "lib/clay.h"
-#include "raylib.h"
+/* ============================================================
+   Core Types
+   ============================================================ */
 
-enum Direction {
-    START,
-    CENTER,
-    END
-};
+typedef struct GuiColor {
+    uint8_t r, g, b, a;
+} GuiColor;
 
-enum Sizing {
-    FIT,
-    GROW,
-    PERCENT,
-    FIXED
-};
+#define GUI_COLOR(r,g,b,a) ((GuiColor){ (r), (g), (b), (a) })
 
-typedef struct Dimensions {
-    float width;
-    float height;
-} Dimension;
+/* ============================================================
+   Direction / Alignment
+   ============================================================ */
 
-// For now we only support 3 fonts per theme
-#define FONT_REGULAR 0
-#define FONT_ITALIC 1
-#define FONT_BOLD 2
+typedef enum {
+    GUI_DIR_START,
+    GUI_DIR_CENTER,
+    GUI_DIR_END
+} GuiDirection;
+
+/* ============================================================
+   Sizing
+   ============================================================ */
+
+typedef enum {
+    GUI_SIZING_FIT,
+    GUI_SIZING_GROW,
+    GUI_SIZING_FIXED,
+    GUI_SIZING_PERCENT
+} GuiSizingKind;
 
 typedef struct {
-    Clay_Color bg_col, bg_hover_col, fg_col, border_col;
-    Font fonts[3];
+    GuiSizingKind kind;
+    float value;
+} GuiSizing;
+
+#define GUI_SIZING_FIT()        ((GuiSizing){ GUI_SIZING_FIT, 0.0f })
+#define GUI_SIZING_GROW()       ((GuiSizing){ GUI_SIZING_GROW, 0.0f })
+#define GUI_SIZING_FIXED(px)    ((GuiSizing){ GUI_SIZING_FIXED, (float)(px) })
+#define GUI_SIZING_PERCENT(p)   ((GuiSizing){ GUI_SIZING_PERCENT, (float)(p) })
+
+/* ============================================================
+   Theme (opaque fonts)
+   ============================================================ */
+
+typedef struct GuiFontHandle GuiFontHandle;
+
+#define FONT_REGULAR 0
+#define FONT_ITALIC  1
+#define FONT_BOLD    2
+
+typedef struct Theme {
+    GuiColor bg_col;
+    GuiColor bg_hover_col;
+    GuiColor fg_col;
+    GuiColor border_col;
+
+    GuiFontHandle* fonts[3];
 } Theme;
 
 extern Theme* current_theme;
-std::vector<Theme> load_themes();
+Theme* load_themes(uint32_t* out_count);
 
-typedef enum ButtonFlags {
-    BUTTON_NONE        = 0,
-    BUTTON_FONT_SIZE   = 1 << 0,
-    BUTTON_H_ALIGN     = 1 << 1,
-    BUTTON_V_ALIGN     = 1 << 2,
-    BUTTON_SIZING_X    = 1 << 3,
-    BUTTON_SIZING_Y    = 1 << 4
-} ButtonFlags;
+/* ============================================================
+   Input helpers
+   ============================================================ */
 
-extern bool down_last_frame;
-bool MouseClicked();
-bool MouseJustClicked();
-Clay_String clay_string_from_cstr(const char* cstr);
+int MouseClicked(void);
+int MouseJustClicked(void);
 
-struct ButtonParams {
+/* ============================================================
+   Widgets (PASS BY VALUE)
+   ============================================================ */
+
+/* ---------- Button ---------- */
+
+typedef struct {
     const char* text;
-
-    uint32_t struct_size;
-    uint32_t flags;
-
+    GuiSizing size_x;
+    GuiSizing size_y;
+    GuiDirection h_align;
+    GuiDirection v_align;
     float font_size;
-    Direction h_align;
-    Direction v_align;
-    Sizing sizing_x, sizing_y;
-    float sizing_num_x, sizing_num_y;
-};
-bool Button(const ButtonParams* params);
-
-ButtonParams ButtonParamInit(ButtonParams in_params);
-
-void HandleButtonInteraction(Clay_ElementId elementId, Clay_PointerData pointerData, void *userData);
+} GuiButtonParams;
 
 
-typedef enum LabelFlags {
-    LABEL_NONE        = 0,
-    LABEL_font_size   = 1 << 0,
-    LABEL_H_ALIGN     = 1 << 1,
-    LABEL_V_ALIGN     = 1 << 2,
-    LABEL_SIZING_X    = 1 << 3,
-    LABEL_SIZING_Y    = 1 << 4
-} LabelFlags;
+#define GUI_BUTTON_DEFAULTS \
+((GuiButtonParams){ \
+    .text = "", \
+    .size_x = GUI_SIZING_GROW(), \
+    .size_y = GUI_SIZING_FIXED(48), \
+    .h_align = GUI_DIR_START, \
+    .v_align = GUI_DIR_START, \
+    .font_size = 16.0f, \
+})
 
-struct LabelParams {
+int Button(GuiButtonParams params);
+
+/* ---------- Label ---------- */
+
+typedef struct {
     const char* text;
-
-    uint32_t struct_size;
-    uint32_t flags;
-
+    GuiSizing size_x;
+    GuiSizing size_y;
+    GuiDirection h_align;
+    GuiDirection v_align;
     float font_size;
-    Direction h_align;
-    Direction v_align;
-    Sizing sizing_x, sizing_y;
-    float sizing_num_x, sizing_num_y;
-};
-void Label(const LabelParams* params);
+} GuiLabelParams;
 
-LabelParams LabelParamInit(LabelParams in_params);
+
+#define GUI_LABEL_DEFAULTS \
+((GuiLabelParams){ \
+    .text = "", \
+    .size_x = GUI_SIZING_FIT(), \
+    .size_y = GUI_SIZING_FIT(), \
+    .h_align = GUI_DIR_START, \
+    .v_align = GUI_DIR_START, \
+    .font_size = 16.0f, \
+})
+
+void Label(GuiLabelParams params);
+
+/* ---------- Box ---------- */
+
+typedef struct {
+    GuiSizing     size_x;
+    GuiSizing     size_y;
+    GuiDirection  direction;
+    uint16_t      padding;
+    GuiColor      background;
+} GuiBoxParams;
+
+#define GUI_BOX_DEFAULTS \
+((GuiBoxParams){ \
+    .size_x = GUI_SIZING_GROW(), \
+    .size_y = GUI_SIZING_GROW(), \
+    .direction = GUI_DIR_START, \
+    .padding = 0, \
+    .background = {0,0,0,0}, \
+})
+
+void Gui_BeginBox(GuiBoxParams params);
+void Gui_End(void);
+
+/* ============================================================
+   Images (opaque)
+   ============================================================ */
+
+typedef struct GuiImage GuiImage;
+
+GuiImage* GuiImage_Create(int width, int height);
+void      GuiImage_Update(GuiImage* image, const void* rgba_pixels);
+void      GuiImage_Draw(GuiImage* image, int x, int y);
+void      GuiImage_DrawTinted(GuiImage* image, int x, int y, GuiColor tint);
+void      GuiImage_Destroy(GuiImage* image);
+
+#ifdef __cplusplus
+}
+#endif
+
+/* ============================================================
+   Backend-only (Raylib bridge)
+   ============================================================ */
+
+#ifdef GUI_BACKEND
+#include "raylib.h"
+Font* Gui_GetRaylibFonts(const Theme* theme);
+#endif

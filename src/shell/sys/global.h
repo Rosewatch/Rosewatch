@@ -43,6 +43,7 @@ public:
     void SetApps(std::vector<RuntimeApplication>* new_apps);
 
     void SetThemes(std::vector<Theme> new_themes);
+    void SetThemes(Theme* themes, uint32_t count);
     void SetCurrentTheme(int i);
 
     void tick();
