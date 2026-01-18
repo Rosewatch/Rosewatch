@@ -13,15 +13,11 @@ extern "C" void init(AppAPI* api) {
     api->print("Hello from plugin init()");
 
     button_params = api->ButtonParamInit((ButtonParams){
-        .text = "Hello!",
-        .width = 100,
-        .height = 100
+        .text = "Hello!"
     });
 
     label_params = api->LabelParamInit((LabelParams){
-        .text = "0",
-        .width = 100,
-        .height = 100
+        .text = "0"
     });
 }
 

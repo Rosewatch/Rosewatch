@@ -15,32 +15,22 @@ Shell::Shell() {
 
     clock_params = LabelParamInit((LabelParams) {
         .text = "",
-        .width = clock_width,
-        .height = clock_height,
         .flags = LABEL_font_size | LABEL_H_ALIGN | LABEL_V_ALIGN,
-        .font_size = 4,
+        .font_size = 32,
         .h_align = CENTER,
         .v_align = CENTER
     });
 
     home_params = ButtonParamInit((ButtonParams) {
         .text = "Home",
-        .width = WIDTH/2,
-        .height = WIDTH/2,
-        .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-        .font_size = 32,
-        .h_align = CENTER,
-        .v_align = CENTER
+        .flags = BUTTON_FONT_SIZE,
+        .font_size = 32
     });
     
     drawer_params = ButtonParamInit((ButtonParams) {
         .text = "Apps",
-        .width = WIDTH/2,
-        .height = WIDTH/2,
-        .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-        .font_size = 2,
-        .h_align = CENTER,
-        .v_align = CENTER
+        .flags = BUTTON_FONT_SIZE,
+        .font_size = 32
     });
 
     apps_params = std::vector<ShellApp>();
@@ -48,21 +38,13 @@ Shell::Shell() {
         apps_params.push_back((ShellApp) {
             .param = ButtonParamInit((ButtonParams) {
                 .text = (*it).title.c_str(),
-                .width = WIDTH - WIDTH/4,
-                .height = WIDTH/2,
-                .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-                .font_size = 2,
-                .h_align = CENTER,
-                .v_align = CENTER,
+                .flags = BUTTON_FONT_SIZE,
+                .font_size = 32
             }),
             .close_param = ButtonParamInit((ButtonParams) {
                 .text = "X",
-                .width = WIDTH/4,
-                .height = WIDTH/2,
-                .flags = BUTTON_FONT_SIZE | BUTTON_H_ALIGN | BUTTON_V_ALIGN,
-                .font_size = 2,
-                .h_align = CENTER,
-                .v_align = CENTER,
+                .flags = BUTTON_FONT_SIZE,
+                .font_size = 32
             }),
             .open = &it->open,
         });
@@ -86,11 +68,16 @@ void Shell::draw() {
     CLAY(CLAY_ID("Shell Sidebar"), (Clay_ElementDeclaration) {
         .layout = {
             .sizing = { .width = CLAY_SIZING_FIXED(WIDTH), .height = CLAY_SIZING_GROW(0) },
+            .layoutDirection = CLAY_TOP_TO_BOTTOM
         },
         .backgroundColor = (Clay_Color) {224, 215, 210, 255},
     }) {
         if (global_state->api->Button(&home_params)) {
-            global_state->api->print("HELLO!");
+            global_state->SetApplicationState(APPLICATION_HOME);
+        }
+
+        if (global_state->api->Button(&drawer_params)) {
+            global_state->SetApplicationState(APPLICATION_APPS);
         }
     }
 

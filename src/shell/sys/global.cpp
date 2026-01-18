@@ -40,3 +40,11 @@ void GlobalState::SetApplicationState(ApplicationState new_state) {
 void GlobalState::SetApps(std::vector<RuntimeApplication>* new_apps) {
     apps = new_apps;
 }
+
+void GlobalState::SetThemes(std::vector<Theme> new_themes) {
+    themes = new_themes;
+}
+
+void GlobalState::SetCurrentTheme(int i) {
+    current_theme = &themes.at(i);
+}

@@ -1,0 +1,9 @@
+{
+    "font_regular": "Born2bSportyV2.ttf",
+    "font_italic": "Born2bSportyV2.ttf",
+    "font_bold": "Born2bSportyV2.ttf",
+    "bg_col": [0,0,0,255],
+    "bg_hover_col": [0,0,0,200],
+    "fg_col": [255,255,255,255],
+    "border_col": [100,100,100,100]
+}

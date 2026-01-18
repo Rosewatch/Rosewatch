@@ -14,10 +14,8 @@ void Drawer::draw() {
     for (auto it = global_state->apps->begin(); it != global_state->apps->end(); ++it) {
         ButtonParams params = ButtonParamInit((ButtonParams){
             .text = (*it).title.c_str(),
-            .width = TILE_SIZE,
-            .height = TILE_SIZE,
             .flags = BUTTON_FONT_SIZE,
-            .font_size = 1.5
+            .font_size = 30
         });
 
         if (global_state->api->Button(&params)) {

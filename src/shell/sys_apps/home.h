@@ -1,6 +1,5 @@
 #pragma once
 
-#include "raygui.h"
 #include "../sys/global.h"
 
 class Home {

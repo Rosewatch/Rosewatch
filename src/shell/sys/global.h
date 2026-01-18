@@ -27,6 +27,10 @@ public:
     Dimensions viewport;
     ApplicationState app_state;
     std::vector<RuntimeApplication> *apps;
+    
+    std::vector<Theme> themes;
+    Theme* current_theme;
+    
     AppAPI* api{};
     time_t raw_time;
 
@@ -37,6 +41,9 @@ public:
     void SetApplicationState(ApplicationState new_state);
     
     void SetApps(std::vector<RuntimeApplication>* new_apps);
+
+    void SetThemes(std::vector<Theme> new_themes);
+    void SetCurrentTheme(int i);
 
     void tick();
 

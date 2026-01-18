@@ -2,12 +2,8 @@
 
 Home::Home() {
     label_params = LabelParamInit((LabelParams){
-        .width = global_state->viewport.width,
-        .height = global_state->viewport.height,
-        .flags = LABEL_font_size | LABEL_H_ALIGN | LABEL_V_ALIGN,
-        .font_size = 10,
-        .h_align = CENTER,
-        .v_align = CENTER
+        .flags = LABEL_font_size,
+        .font_size = 128
     });
 }
 
